@@ -1,0 +1,43 @@
+import rtconfig
+Import('RTT_ROOT')
+from building import *
+
+src_bsp = ['board.c', 'stm32f10x_it.c']
+src_drv = ['usart.c']
+
+usb_drv = Split("""
+usb/hw_config.c
+usb/usb_desc.c
+usb/usb_istr.c
+usb/usb_prop.c
+usb/usb_pwr.c
+usb/cdc_serial.c
+""")
+
+usb_drv1 = Split("""
+usb/hw_config.c
+usb/usb_pwr.c
+usb/stm32f10x_dcd.c
+""")
+
+if GetDepend('RT_USING_I2C'):
+    src_drv += ['stm32_i2c.c']
+
+if GetDepend('RT_USB_DEVICE_MSTORAGE'):
+    src_drv += ['flash.c']
+
+src = src_bsp + src_drv
+path = [ GetCurrentDir() ]
+
+if GetDepend('RT_USING_STD_USB'):
+    src += usb_drv
+    path += [GetCurrentDir() + '/usb']
+
+if GetDepend('RT_USING_USB_DEVICE'):
+    src += usb_drv1
+    path += [GetCurrentDir() + '/usb']
+
+CPPDEFINES = []
+group = DefineGroup('Drivers', src, depend = [''], CPPPATH = path, CPPDEFINES = CPPDEFINES)
+
+Return('group')

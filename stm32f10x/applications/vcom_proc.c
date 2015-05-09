@@ -42,7 +42,7 @@ void uart1_thread_entry(void* parameter)
 			break;
 		}
 
-		size = rt_device_read(uart1_dev, 0, buf, 1);
+		size = rt_device_read(uart1_dev, 0, buf, BUFSZ);
 		if (size > 0)
 		{
 			rt_device_write(vcom_dev, 0, buf, size);

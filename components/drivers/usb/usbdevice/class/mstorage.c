@@ -133,8 +133,8 @@ const static struct umass_descriptor _mass_desc =
 const static char* _ustring[] =
 {
     "Language",
-    "EZVIZ",
-    "F1 Mass Storage",
+    "RT-Thread Team.",
+    "RTT Mass Storage",
     "28160705",
     "Config",
     "Intf",

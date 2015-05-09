@@ -150,8 +150,8 @@ const static struct ucdc_data_descriptor _data_desc =
 const static char* _ustring[] =
 {
     "Language",
-    "EZVIZ",
-    "F1 Virtual Serial",
+    "RT-Thread Team.",
+    "RTT Virtual Serial",
     "28160705",
     "Config",
     "Intf",

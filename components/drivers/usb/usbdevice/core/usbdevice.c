@@ -34,8 +34,8 @@
 const static char* ustring[] =
 {
     "Language",
-    "EZVIZ",
-    "F1 Composite Device",
+    "RT-Thread Team.",
+    "RTT Composite Device",
     "28160705",
     "Config",
     "Intf",

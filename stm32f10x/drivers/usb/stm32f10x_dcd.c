@@ -6,7 +6,6 @@
 #include "usb_conf.h"
 #include "hw_config.h"
 #include "usb_pwr.h"
-#include <com_lib.h>
 
 #ifdef RT_USING_USB_DEVICE
 
@@ -467,7 +466,6 @@ static rt_err_t set_address(rt_uint8_t address)
 	} /* for */
 	_SetDADDR(address | DADDR_EF); /* set device address and enable function */
 
-	uart2_send_cmd_status(COM_CMD_SEND_CONNECT_STATUS, RT_NULL, 0, 0, 0);
 
     return RT_EOK;
 }

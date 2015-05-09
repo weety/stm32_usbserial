@@ -45,7 +45,6 @@
 #endif
 
 #include "stm32f10x.h"
-#include "com_lib.h"
 
 #ifdef RT_USING_RTGUI
 rt_bool_t cali_setup(void)

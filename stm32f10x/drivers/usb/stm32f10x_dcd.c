@@ -736,7 +736,7 @@ static rt_err_t stm32_dcd_init(rt_device_t device)
     rt_kprintf("stm32 usb init\n");
 
 	rt_hw_gpio_init();
-	usbhub_reset();
+	//usbhub_reset();
     Set_System();
 	Set_USBClock();
 	USB_Interrupts_Config();
@@ -745,6 +745,8 @@ static rt_err_t stm32_dcd_init(rt_device_t device)
 
   	/* Perform basic device initialization operations */
   	USB_SIL_Init();
+
+	USB_Cable_Config(ENABLE);
 
     return RT_EOK;
 }
@@ -760,37 +762,6 @@ void rt_hw_usbd_init(void)
     rt_device_register(&udev.stm32_dcd.parent, "usbd", 0);
 }
 
-void heart_beat_thread_entry(void *parameter)
-{
-	int ret;
-	struct udev_msg msg;
-
-	while(1)
-	{
-		rt_thread_delay(RT_TICK_PER_SECOND * 2);
-		ret = uart2_send_cmd_status(COM_CMD_GET_STATUS, RT_NULL, 0, 
-									0, RT_TICK_PER_SECOND);
-		if (ret != RT_EOK)
-		{
-			rt_kprintf("F1 not connected..\n");
-			if (GPIO_ReadInputDataBit(USBHUB_RESET, USBHUB_RESET_PIN))
-				GPIO_ResetBits(USBHUB_RESET, USBHUB_RESET_PIN);
-			USB_Cable_Config(DISABLE);
-			msg.type = USB_MSG_PLUG_OUT;
-			msg.dcd = &udev.stm32_dcd;
-
-			rt_usbd_post_event(&msg, sizeof(struct udev_msg));
-		}
-		else
-		{
-			if (!GPIO_ReadInputDataBit(USBHUB_RESET, USBHUB_RESET_PIN))
-				GPIO_SetBits(USBHUB_RESET, USBHUB_RESET_PIN);
-			USB_Cable_Config(ENABLE);
-		}
-	}
-}
-
-
 void usb_init(void)
 {
 	rt_thread_t heartbeat_thread;
@@ -802,13 +773,6 @@ void usb_init(void)
 #endif
 	rt_hw_usbd_init();
 	rt_usb_device_init();
-
-	heartbeat_thread = rt_thread_create("hb",
-								heart_beat_thread_entry, RT_NULL,
-								512, 20, 20);
-
-	if (heartbeat_thread != RT_NULL)
-		rt_thread_startup(heartbeat_thread);
 }
 
 #ifdef RT_USING_FINSH

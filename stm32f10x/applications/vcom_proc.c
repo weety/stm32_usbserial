@@ -2,6 +2,7 @@
 #include <board.h>
 #include <rtthread.h>
 #include <rtdevice.h>
+#include <stm32f10x.h>
 #include "vcom_proc.h"
 
 #define VCOM_BUFSZ 2048
@@ -14,9 +15,20 @@ rt_uint32_t uart1_buffer[BUFSZ / 4];
 static struct rt_semaphore uart1_sem;
 static rt_device_t uart1_dev;
 
+static int led_status = 0;
+static struct rt_semaphore led_sem;
+static void rt_led_on(void);
+static void rt_led_off(void);
+
+
 rt_err_t uart1_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&uart1_sem);
+	if (!led_status)
+	{
+		led_status = 1;
+		rt_sem_release(&led_sem);
+	}
 
 	return RT_EOK;
 }
@@ -59,6 +71,11 @@ void uart1_thread_entry(void* parameter)
 rt_err_t vcom_rx_ind(rt_device_t dev, rt_size_t size)
 {
 	rt_sem_release(&vcom_sem);
+	if (!led_status)
+	{
+		led_status = 1;
+		rt_sem_release(&led_sem);
+	}
 
 	return RT_EOK;
 }
@@ -97,6 +114,62 @@ void vcom_thread_entry(void* parameter)
 	rt_sem_detach(&vcom_sem);
 }
 
+// GPIO define
+#define LED_GPIO      GPIOB
+#define LED_GPIO_PIN  GPIO_Pin_9
+#define RCC_APB2Periph_GPIO_LED      RCC_APB2Periph_GPIOB
+
+static void rt_led_gpio_init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_LED, ENABLE);
+
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+    GPIO_InitStructure.GPIO_Pin   = LED_GPIO_PIN;
+    GPIO_Init(LED_GPIO, &GPIO_InitStructure);
+    GPIO_SetBits(LED_GPIO, LED_GPIO_PIN);
+}
+
+static void rt_led_on(void)
+{
+	GPIO_SetBits(LED_GPIO, LED_GPIO_PIN);
+}
+
+static void rt_led_off(void)
+{
+	GPIO_ResetBits(LED_GPIO, LED_GPIO_PIN);
+}
+
+void led_thread_entry(void* parameter)
+{
+	rt_err_t err;
+	int count = 0;
+
+	while(1)
+	{
+		led_status = 0;
+		rt_led_on();
+		err = rt_sem_take(&led_sem, RT_WAITING_FOREVER);
+		if (err != RT_EOK)
+		{
+			rt_kprintf("wait sem led error\n");
+			break;
+		}
+
+		for (count = 0; count < 20; count++)
+		{
+			rt_led_on();
+			rt_thread_delay(2);
+			rt_led_off();
+			rt_thread_delay(3);
+		}
+	}
+
+	rt_sem_detach(&led_sem);
+}
 
 void vcom_init(void)
 {
@@ -104,6 +177,11 @@ void vcom_init(void)
 	struct serial_configure config;
 	rt_thread_t uart1_thread;
 	rt_thread_t vcom_thread;
+	rt_thread_t led_thread;
+
+	rt_led_gpio_init();
+
+	rt_sem_init(&led_sem, "led", 0, RT_IPC_FLAG_FIFO);
 
 	rt_sem_init(&uart1_sem, "uart1", 0, RT_IPC_FLAG_FIFO);
 
@@ -159,6 +237,13 @@ void vcom_init(void)
 
 	if (vcom_thread != RT_NULL)
 		rt_thread_startup(vcom_thread);
+
+	led_thread = rt_thread_create("led",
+								led_thread_entry, RT_NULL,
+								512, 17, 20);
+
+	if (led_thread != RT_NULL)
+		rt_thread_startup(led_thread);
 }
 
 

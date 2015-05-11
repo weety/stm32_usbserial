@@ -20,6 +20,8 @@ static struct rt_semaphore led_sem;
 static void rt_led_on(void);
 static void rt_led_off(void);
 
+extern void
+rt_vcom_cfg_sethook(void (*hook)(struct serial_configure *cfg));
 
 rt_err_t uart1_rx_ind(rt_device_t dev, rt_size_t size)
 {
@@ -67,6 +69,10 @@ void uart1_thread_entry(void* parameter)
 	rt_sem_detach(&uart1_sem);
 }
 
+void uart1_config(struct serial_configure *cfg)
+{
+	rt_device_control(uart1_dev, RT_DEVICE_CTRL_CONFIG, cfg);
+}
 
 rt_err_t vcom_rx_ind(rt_device_t dev, rt_size_t size)
 {
@@ -207,6 +213,8 @@ void vcom_init(void)
     config.invert    = NRZ_NORMAL;
 
 	rt_device_control(uart1_dev, RT_DEVICE_CTRL_CONFIG, &config);
+
+	rt_vcom_cfg_sethook(uart1_config);
 
 	rt_sem_init(&vcom_sem, "vcom", 0, RT_IPC_FLAG_FIFO);
 	vcom_dev = rt_device_find("vcom");

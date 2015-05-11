@@ -101,9 +101,18 @@ serial_configure *cfg)
     if (cfg->stop_bits == STOP_BITS_1)
         USART_InitStructure.USART_StopBits = USART_StopBits_1;
     else if (cfg->stop_bits == STOP_BITS_2)
+        USART_InitStructure.USART_StopBits = USART_StopBits_1_5;
+    else if (cfg->stop_bits == STOP_BITS_3)
         USART_InitStructure.USART_StopBits = USART_StopBits_2;
 
-    USART_InitStructure.USART_Parity = USART_Parity_No;
+    if (cfg->parity == PARITY_NONE)
+        USART_InitStructure.USART_Parity = USART_Parity_No;
+    if (cfg->parity == PARITY_ODD)
+        USART_InitStructure.USART_Parity = USART_Parity_Odd;
+    if (cfg->parity == PARITY_EVEN)
+        USART_InitStructure.USART_Parity = USART_Parity_Even;
+    else
+        USART_InitStructure.USART_Parity = USART_Parity_No;
     USART_InitStructure.USART_HardwareFlowControl = 
 USART_HardwareFlowControl_None;
     USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;

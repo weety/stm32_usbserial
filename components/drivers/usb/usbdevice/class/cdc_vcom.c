@@ -45,6 +45,15 @@ static rt_uint8_t rx_buf[CDC_RX_BUFSIZE];
 volatile static rt_bool_t vcom_connected = RT_FALSE;
 volatile static rt_bool_t vcom_in_sending = RT_FALSE;
 
+static void (*rt_vcom_cfg_hook)(struct serial_configure *cfg) = (void (*)(struct serial_configure *))RT_NULL;
+
+void
+rt_vcom_cfg_sethook(void (*hook)(struct serial_configure *cfg))
+{
+    rt_vcom_cfg_hook = hook;
+}
+
+
 static struct udevice_descriptor dev_desc =
 {
     USB_DESC_LENGTH_DEVICE,     //bLength;
@@ -268,13 +277,13 @@ static rt_err_t _cdc_get_line_coding(udevice_t device, ureq_t setup)
     RT_ASSERT(device != RT_NULL);
     RT_ASSERT(setup != RT_NULL);
 
-    data.dwDTERate = 115200;
+    /*data.dwDTERate = 115200;
     data.bCharFormat = 0;
     data.bDataBits = 8;
-    data.bParityType = 0;
+    data.bParityType = 0;*/
     size = setup->length > 7 ? 7 : setup->length;
 
-    dcd_ep_write(device->dcd, 0, (void*)&data, size);
+    dcd_ep_write(device->dcd, 0, (void*)&_vcom.line_code, size);
 
     return RT_EOK;
 }
@@ -289,7 +298,8 @@ static rt_err_t _cdc_get_line_coding(udevice_t device, ureq_t setup)
  */
 static rt_err_t _cdc_set_line_coding(udevice_t device, ureq_t setup)
 {
-    struct ucdc_line_coding data;
+    struct serial_configure config;
+    struct ucdc_line_coding *data = &_vcom.line_code;
     rt_err_t ret;
 
     RT_ASSERT(device != RT_NULL);
@@ -297,12 +307,24 @@ static rt_err_t _cdc_set_line_coding(udevice_t device, ureq_t setup)
 
     rt_completion_init(&device->dcd->completion);
 
-    dcd_ep_read(device->dcd, 0, (void*)&data, setup->length);
+    dcd_ep_read(device->dcd, 0, (void*)data, setup->length);
 
     ret = rt_completion_wait(&device->dcd->completion, 100);
     if(ret != RT_EOK)
     {
         rt_kprintf("_cdc_set_line_coding timeout\n");
+    }
+    else
+    {
+        config.baud_rate = data->dwDTERate;
+        config.data_bits = data->bDataBits;
+        config.stop_bits = data->bCharFormat;
+        config.parity    = data->bParityType;
+        config.bit_order = BIT_ORDER_LSB;
+        config.invert    = NRZ_NORMAL;
+        config.reserved  = 0;
+        if (rt_vcom_cfg_hook)
+            rt_vcom_cfg_hook(&config);
     }
 
     return RT_EOK;
@@ -601,6 +623,11 @@ void rt_usb_vcom_init(void)
     config.parity = PARITY_NONE;
     config.stop_bits = STOP_BITS_1;
     config.invert = NRZ_NORMAL;
+
+    _vcom.line_code.dwDTERate = 115200;
+    _vcom.line_code.bCharFormat = 0;
+    _vcom.line_code.bDataBits = 8;
+    _vcom.line_code.bParityType = 0;
 
     _vcom.sdev.ops = &usb_vcom_ops;
     _vcom.sdev.int_rx = &vcom_int_rx;

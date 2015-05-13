@@ -487,8 +487,7 @@ void rt_hw_usart_init()
     /* register UART1 device */
     rt_hw_serial_register(&serial1, "uart1",
                           RT_DEVICE_FLAG_RDWR | 
-                          RT_DEVICE_FLAG_INT_RX | 
-                          RT_DEVICE_FLAG_STREAM,
+                          RT_DEVICE_FLAG_INT_RX,
                           uart);
 #endif
 
@@ -511,7 +510,8 @@ void rt_hw_usart_init()
     /* register UART2 device */
     rt_hw_serial_register(&serial2, "uart2",
                           RT_DEVICE_FLAG_RDWR | 
-                          RT_DEVICE_FLAG_INT_RX,
+                          RT_DEVICE_FLAG_INT_RX | 
+                          RT_DEVICE_FLAG_STREAM,
                           uart);
 #endif
 
